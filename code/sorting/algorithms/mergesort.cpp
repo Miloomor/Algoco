@@ -69,17 +69,3 @@ void mergeSort(vector<int>& arr, int left, int right){
     mergeSort(arr, mid + 1, right);
     merge(arr, left, mid, right);
 }
-
-// Driver code
-int main(){
-    
-    vector<int> arr = {38, 27, 43, 10};
-    int n = arr.size();
-
-    mergeSort(arr, 0, n - 1);
-    for (int i = 0; i < arr.size(); i++)
-        cout << arr[i] << " ";
-    cout << endl;
-    
-    return 0;
-}
