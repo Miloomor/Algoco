@@ -104,7 +104,7 @@ vector<vector<int>> strassen(vector<vector<int>> mat1,
 
 // Multiply mat1 (n×m) and mat2 (m×q) 
 // using Strassen’s method
-vector<vector<int>> multiply(vector<vector<int>> &mat1, 
+vector<vector<int>> strassenMultiply(vector<vector<int>> &mat1, 
                 vector<vector<int>> &mat2) {
     // Compute size of the smallest power of 2 ≥ max(n, m, q)
     int n = mat1.size(), m = mat1[0].size(), q = mat2[0].size() ;
@@ -124,20 +124,4 @@ vector<vector<int>> multiply(vector<vector<int>> &mat1,
             C[i][j] = cPad[i][j];
 
     return C ;
-}
-
-int main() {
-    vector<vector<int>> mat1 = {{1, 2, 3}, {4, 5, 6}};
-    vector<vector<int>> mat2 = {{7, 8}, {9, 10}, {11, 12}};
-
-    vector<vector<int>> res = multiply(mat1, mat2);
-
-    for (auto &row : res) {
-        for (int val : row) {
-            cout << val << " " ;
-        }
-        cout << endl;
-    }
-
-    return 0;
 }

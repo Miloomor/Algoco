@@ -1,3 +1,6 @@
+#include "algorithms/naive.cpp"
+#include "algorithms/strassen.cpp"
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
