@@ -15,7 +15,7 @@ static long getMemoryKB() {
     std::ifstream f("/proc/self/status");
     std::string line;
     while (std::getline(f, line)) {
-        if (line.rfind("VmHWM:", 0) == 0) {
+        if (line.rfind("VmRSS:", 0) == 0) {
             std::istringstream iss(line);
             std::string key; long val;
             iss >> key >> val;
@@ -50,6 +50,7 @@ static void writeArray(const std::string& filepath, const std::vector<int>& arr)
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 int main() {
+std::srand((unsigned)std::time(nullptr));
 
 // Directorios relativos al ejecutable (se ejecuta desde code/sorting/)
 const std::string inputDir  = "data/array_input/";

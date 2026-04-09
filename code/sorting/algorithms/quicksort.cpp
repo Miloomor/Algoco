@@ -11,6 +11,9 @@ using namespace std;
    c) a[j..r] contains all elements greater than pivot */
 void partition(std::vector<int>& a, int l, int r, int &i, int &j)
 {
+    int randIdx = l + rand() % (r - l + 1);
+    swap(a[randIdx], a[r]);
+
     i = l - 1, j = r;
     int p = l - 1, q = r;
     int v = a[r];
@@ -67,25 +70,22 @@ void partition(std::vector<int>& a, int l, int r, int &i, int &j)
         swap(a[i], a[k]);
 }
 
-// 3-way partition based quick sort with Tail Call Optimization
+// 3-way partition based quick sort
 void quickSort(std::vector<int>& a, int l, int r)
-{
-    while (r > l) {
+{while (l < r) {
         int i, j;
 
         // Note that i and j are passed as reference
         partition(a, l, r, i, j);
 
-        // Recursively sort the smaller part, loop on the larger part
-        // This reduces stack depth from O(n) to O(log n)
-        if (j - l < r - i) {
-            // Left part is smaller - recurse on left, iterate on right
-            quickSort(a, l, j);
-            l = i;  // Update left boundary to process right part in next iteration
+        // j es el final de los menores, i es el inicio de los mayores.
+        // Hacemos recursión SOLO en la mitad más pequeña:
+        if ((j - l) < (r - i)) {
+            quickSort(a, l, j); // Recursión en la izquierda
+            l = i;              // El bucle while procesa la derecha
         } else {
-            // Right part is smaller - recurse on right, iterate on left
-            quickSort(a, i, r);
-            r = j;  // Update right boundary to process left part in next iteration
+            quickSort(a, i, r); // Recursión en la derecha
+            r = j;              // El bucle while procesa la izquierda
         }
     }
 }
