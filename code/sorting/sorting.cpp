@@ -11,43 +11,46 @@
 #include <functional>
 
 // Lee el uso de memoria pico del proceso actual (en KB) desde /proc/self/status
-long getMemoryKB() {
-std::ifstream status("/proc/self/status");
-std::string line;
-while (std::getline(status, line)) {
-    if (line.rfind("VmRSS:", 0) == 0) {
-        std::istringstream iss(line);
-        std::string key;
-        long value;
-        iss >> key >> value;
-        return value; // kB
+static long getMemoryKB() {
+    std::ifstream f("/proc/self/status");
+    std::string line;
+    while (std::getline(f, line)) {
+        if (line.rfind("VmHWM:", 0) == 0) {
+            std::istringstream iss(line);
+            std::string key; long val;
+            iss >> key >> val;
+            return val;
+        }
     }
+    return -1;
 }
-return -1;
+ 
+static std::vector<int> readArray(const std::string& filepath) {
+    std::FILE* fp = std::fopen(filepath.c_str(), "r");
+    if (!fp) return {};
+    std::vector<int> arr;
+    arr.reserve(10000000);
+    int x;
+    while (std::fscanf(fp, "%d", &x) == 1) arr.push_back(x);
+    std::fclose(fp);
+    arr.shrink_to_fit();
+    return arr;
 }
-
-// Lee un arreglo desde un archivo de texto (elementos separados por espacios)
-std::vector<int> readArray(const std::string& filepath) {
-std::ifstream file(filepath);
-std::vector<int> arr;
-int x;
-while (file >> x) arr.push_back(x);
-return arr;
+ 
+static void writeArray(const std::string& filepath, const std::vector<int>& arr) {
+    std::FILE* fp = std::fopen(filepath.c_str(), "w");
+    if (!fp) return;
+    for (size_t i = 0; i < arr.size(); i++) {
+        std::fprintf(fp, "%d", arr[i]);
+        if (i + 1 < arr.size()) std::fputc(' ', fp);
+    }
+    std::fputc('\n', fp);
+    std::fclose(fp);
 }
-
-// Escribe un arreglo en un archivo de texto
-void writeArray(const std::string& filepath, const std::vector<int>& arr) {
-std::ofstream file(filepath);
-for (size_t i = 0; i < arr.size(); i++) {
-    file << arr[i];
-    if (i + 1 < arr.size()) file << " ";
-}
-file << "\n";
-}
-
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 int main() {
+
 // Directorios relativos al ejecutable (se ejecuta desde code/sorting/)
 const std::string inputDir  = "data/array_input/";
 const std::string outputDir = "data/array_output/";
@@ -135,7 +138,7 @@ for (int n : Ns) {
                     std::cout << "[" << done << "/" << total << "] "
                                 << algo.name << " n=" << n
                                 << " t=" << t << " d=" << d << " m=" << m
-                                << " -> " << time_ms << " ms\n";
+                                << " -> " << time_ms << " ms, " << mem_kb << " KB\n";
                 }
             }
         }

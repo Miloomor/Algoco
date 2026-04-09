@@ -1,21 +1,19 @@
 // Fuente GeeksforGeeks: Merge Sort
 // URL: https://www.geeksforgeeks.org/merge-sort/
 
-#include <iostream>
 #include <vector>
-using namespace std;
 
 // Merges two subarrays of arr[].
 // First subarray is arr[left..mid]
 // Second subarray is arr[mid+1..right]
-void merge(vector<int>& arr, int left, 
+void merge(std::vector<int>& arr, int left, 
                      int mid, int right){
                          
     int n1 = mid - left + 1;
     int n2 = right - mid;
 
     // Create temp vectors
-    vector<int> L(n1), R(n2);
+    std::vector<int> L(n1), R(n2);
 
     // Copy data to temp vectors L[] and R[]
     for (int i = 0; i < n1; i++)
@@ -59,7 +57,7 @@ void merge(vector<int>& arr, int left,
 
 // begin is for left index and end is right index
 // of the sub-array of arr to be sorted
-void mergeSort(vector<int>& arr, int left, int right){
+void mergeSort(std::vector<int>& arr, int left, int right){
     
     if (left >= right)
         return;

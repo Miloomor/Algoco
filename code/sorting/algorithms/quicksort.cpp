@@ -1,46 +1,91 @@
-// Fuente GeeksforGeeks: Quick Sort
-// URL: https://www.geeksforgeeks.org/dsa/quick-sort-algorithm/
+// Fuente GeeksforGeeks: 3-Way QuickSort (Dutch National Flag)
+// URL: https://www.geeksforgeeks.org/dsa/3-way-quicksort-dutch-national-flag/
+//
 
-#include <iostream>
-#include <vector>
+#include <bits/stdc++.h>
 using namespace std;
 
-int partition(vector<int>& arr, int low, int high) {
-  
-    // choose the pivot
-    int pivot = arr[high];
-  
-    // undex of smaller element and indicates 
-    // the right position of pivot found so far
-    int i = low - 1;
+/* This function partitions a[] in three parts
+   a) a[l..i] contains all elements smaller than pivot
+   b) a[i+1..j-1] contains all occurrences of pivot
+   c) a[j..r] contains all elements greater than pivot */
+void partition(std::vector<int>& a, int l, int r, int &i, int &j)
+{
+    i = l - 1, j = r;
+    int p = l - 1, q = r;
+    int v = a[r];
 
-    // Traverse arr[low..high] and move all smaller
-    // elements on left side. Elements from low to 
-    // i are smaller after every iteration
-    for (int j = low; j <= high - 1; j++) {
-        if (arr[j] < pivot) {
-            i++;
-            swap(arr[i], arr[j]);
+    while (true) {
+        // From left, find the first element greater than
+        // or equal to v. This loop will definitely
+        // terminate as v is last element
+        while (a[++i] < v)
+            ;
+
+        // From right, find the first element smaller than
+        // or equal to v
+        while (v < a[--j])
+            if (j == l)
+                break;
+
+        // If i and j cross, then we are done
+        if (i >= j)
+            break;
+
+        // Swap, so that smaller goes on left greater goes
+        // on right
+        swap(a[i], a[j]);
+
+        // Move all same left occurrence of pivot to
+        // beginning of array and keep count using p
+        if (a[i] == v) {
+            p++;
+            swap(a[p], a[i]);
+        }
+
+        // Move all same right occurrence of pivot to end of
+        // array and keep count using q
+        if (a[j] == v) {
+            q--;
+            swap(a[j], a[q]);
         }
     }
-    
-    // move pivot after smaller elements and
-    // return its position
-    swap(arr[i + 1], arr[high]);  
-    return i + 1;
+
+    // Move pivot element to its correct index
+    swap(a[i], a[r]);
+
+    // Move all left same occurrences from beginning
+    // to adjacent to arr[i]
+    j = i - 1;
+    for (int k = l; k < p; k++, j--)
+        swap(a[k], a[j]);
+
+    // Move all right same occurrences from end
+    // to adjacent to arr[i]
+    i = i + 1;
+    for (int k = r - 1; k > q; k--, i++)
+        swap(a[i], a[k]);
 }
 
-// the QuickSort function implementation
-void quickSort(vector<int>& arr, int low, int high) {
-  
-    if (low < high) {
-      
-        // pi is the partition return index of pivot
-        int pi = partition(arr, low, high);
+// 3-way partition based quick sort with Tail Call Optimization
+void quickSort(std::vector<int>& a, int l, int r)
+{
+    while (r > l) {
+        int i, j;
 
-        // recursion calls for smaller elements
-        // and greater or equals elements
-        quickSort(arr, low, pi - 1);
-        quickSort(arr, pi + 1, high);
+        // Note that i and j are passed as reference
+        partition(a, l, r, i, j);
+
+        // Recursively sort the smaller part, loop on the larger part
+        // This reduces stack depth from O(n) to O(log n)
+        if (j - l < r - i) {
+            // Left part is smaller - recurse on left, iterate on right
+            quickSort(a, l, j);
+            l = i;  // Update left boundary to process right part in next iteration
+        } else {
+            // Right part is smaller - recurse on right, iterate on left
+            quickSort(a, i, r);
+            r = j;  // Update right boundary to process left part in next iteration
+        }
     }
 }
