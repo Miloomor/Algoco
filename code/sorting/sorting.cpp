@@ -9,20 +9,47 @@
 #include <filesystem>
 #include <algorithm>
 #include <functional>
+#include <atomic>
+#include <new>
 
-// Lee el uso de memoria pico del proceso actual (en KB) desde /proc/self/status
-static long getMemoryKB() {
-    std::ifstream f("/proc/self/status");
-    std::string line;
-    while (std::getline(f, line)) {
-        if (line.rfind("VmRSS:", 0) == 0) {
-            std::istringstream iss(line);
-            std::string key; long val;
-            iss >> key >> val;
-            return val;
-        }
+// ─── Memory tracking ─────────────────────────────────────────────────────────
+// Referencias para tracking de memoria:
+// https://en.cppreference.com/w/cpp/memory/new/operator_new
+// https://en.cppreference.com/w/cpp/memory/new/operator_delete
+
+static std::atomic<long> currentMem{0};
+static std::atomic<long> peakMem{0};
+static std::atomic<bool> trackingEnabled{false};
+
+void* operator new(size_t size) {
+    void* ptr = malloc(size);
+    if (!ptr) throw std::bad_alloc();
+    if (trackingEnabled) {
+        long current = currentMem.fetch_add((long)size) + (long)size;
+        long peak = peakMem.load();
+        while (current > peak && !peakMem.compare_exchange_weak(peak, current));
     }
-    return -1;
+    return ptr;
+}
+
+void operator delete(void* ptr, size_t size) noexcept {
+    if (trackingEnabled) currentMem.fetch_sub((long)size);
+    free(ptr);
+}
+
+void operator delete(void* ptr) noexcept {
+    free(ptr);
+}
+
+// Llama esto antes de cada algoritmo para resetear contadores
+void resetMemTracking() {
+    currentMem = 0;
+    peakMem    = 0;
+}
+
+// Devuelve el pico de memoria en KB registrado desde el último reset
+long getPeakMemKB() {
+    return peakMem.load() / 1024;
 }
  
 static std::vector<int> readArray(const std::string& filepath) {
@@ -106,19 +133,20 @@ for (int n : Ns) {
                         continue;
                     }
 
-                    // Medición de memoria antes
-                    long memBefore = getMemoryKB();
+                    // Activar tracking y resetear contadores
+                    resetMemTracking();
+                    trackingEnabled = true;
 
                     // Medición de tiempo
                     auto start = std::chrono::high_resolution_clock::now();
                     algo.sort(arr);
                     auto end   = std::chrono::high_resolution_clock::now();
 
-                    // Medición de memoria después
-                    long memAfter = getMemoryKB();
+                    // Desactivar tracking antes de cualquier otra cosa
+                    trackingEnabled = false;
 
                     double time_ms = std::chrono::duration<double, std::milli>(end - start).count();
-                    long   mem_kb  = memAfter - memBefore;
+                    long   mem_kb  = getPeakMemKB();
 
                     // Guardar arreglo ordenado (solo para el primer algoritmo para no triplicar datos)
                     if (algo.name == "mergesort") {

@@ -19,6 +19,11 @@ MEAS_FILE  = "data/measurements/results.csv"
 PLOTS_DIR  = "data/plots"
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
+# Limpiar gráficos antiguos para forzar recarga en LaTeX
+for old_plot in os.listdir(PLOTS_DIR):
+    if old_plot.endswith('.png'):
+        os.remove(os.path.join(PLOTS_DIR, old_plot))
+
 ALGO_COLORS = {
     "mergesort": "#2196F3",
     "quicksort": "#F44336",
@@ -28,6 +33,15 @@ ALGO_LABELS = {
     "mergesort": "MergeSort",
     "quicksort": "QuickSort (pivote aleatorio)",
     "stdsort":   "std::sort",
+}
+
+THEORY_COLORS = {
+    "nlogn": "#FF9800",
+    "n2":    "#9C27B0",
+}
+THEORY_LABELS = {
+    "nlogn": "O(n log n) teórico",
+    "n2":    "O(n²) teórico",
 }
 
 # ─── Carga de datos ───────────────────────────────────────────────────────────
@@ -54,77 +68,7 @@ def save(fig, name):
     print(f"  Guardado: {path}")
 
 
-def plot_time_vs_n(subset_df, title, filename, logy=True):
-    """Tiempo vs N para cada algoritmo, dado un subconjunto del df."""
-    fig, ax = plt.subplots(figsize=(8, 5))
-    for algo in algorithms:
-        data = subset_df[subset_df["algorithm"] == algo].sort_values("n")
-        if data.empty:
-            continue
-        ax.plot(data["n"], data["time_ms"],
-                marker="o", label=ALGO_LABELS[algo],
-                color=ALGO_COLORS[algo], linewidth=2, markersize=5)
-    ax.set_xlabel("n (tamaño del arreglo)")
-    ax.set_ylabel("Tiempo promedio (ms)")
-    ax.set_title(title)
-    ax.set_xscale("log")
-    if logy:
-        ax.set_yscale("log")
-    ax.xaxis.set_major_formatter(ticker.LogFormatter(labelOnlyBase=False))
-    ax.legend()
-    ax.grid(True, which="both", linestyle="--", alpha=0.4)
-    fig.tight_layout()
-    save(fig, filename)
-
-
-def plot_memory_vs_n(subset_df, title, filename):
-    """Memoria (VmRSS delta) vs N para cada algoritmo."""
-    fig, ax = plt.subplots(figsize=(8, 5))
-    for algo in algorithms:
-        data = subset_df[subset_df["algorithm"] == algo].sort_values("n")
-        if data.empty:
-            continue
-        ax.plot(data["n"], data["memory_kb"],
-                marker="s", label=ALGO_LABELS[algo],
-                color=ALGO_COLORS[algo], linewidth=2, markersize=5)
-    ax.set_xlabel("n (tamaño del arreglo)")
-    ax.set_ylabel("Memoria adicional promedio (KB)")
-    ax.set_title(title)
-    ax.set_xscale("log")
-    ax.legend()
-    ax.grid(True, which="both", linestyle="--", alpha=0.4)
-    fig.tight_layout()
-    save(fig, filename)
-
-
-# ─── Gráfico 1: Tiempo vs N por tipo de arreglo (promedio sobre dominios) ────
-print("Generando gráficos de tiempo vs n por tipo...")
-for tipo in tipos:
-    sub = grouped[grouped["tipo"] == tipo]
-    # promediar sobre dominios
-    sub = (sub.groupby(["algorithm", "n"])
-              .agg(time_ms=("time_ms", "mean"))
-              .reset_index())
-    plot_time_vs_n(
-        sub,
-        title=f"Tiempo vs n — tipo: {tipo} (promedio D1+D7)",
-        filename=f"tiempo_vs_n_{tipo}.png"
-    )
-
-# ─── Gráfico 2: Tiempo vs N por dominio (promedio sobre tipos) ───────────────
-print("Generando gráficos de tiempo vs n por dominio...")
-for dominio in dominios:
-    sub = grouped[grouped["dominio"] == dominio]
-    sub = (sub.groupby(["algorithm", "n"])
-              .agg(time_ms=("time_ms", "mean"))
-              .reset_index())
-    plot_time_vs_n(
-        sub,
-        title=f"Tiempo vs n — dominio: {dominio} (promedio tipos)",
-        filename=f"tiempo_vs_n_{dominio}.png"
-    )
-
-# ─── Gráfico 3: Tiempo vs N — todos los tipos en subplots ────────────────────
+# ─── Gráfico 1: Tiempo vs N — todos los tipos en subplots ────────────────────
 print("Generando gráfico combinado tiempo vs n (subplots por tipo)...")
 fig, axes = plt.subplots(1, len(tipos), figsize=(6 * len(tipos), 5), sharey=False)
 for ax, tipo in zip(axes, tipos):
@@ -132,6 +76,8 @@ for ax, tipo in zip(axes, tipos):
     sub = (sub.groupby(["algorithm", "n"])
               .agg(time_ms=("time_ms", "mean"))
               .reset_index())
+    
+    # Graficar datos reales
     for algo in algorithms:
         data = sub[sub["algorithm"] == algo].sort_values("n")
         if data.empty:
@@ -139,31 +85,44 @@ for ax, tipo in zip(axes, tipos):
         ax.plot(data["n"], data["time_ms"],
                 marker="o", label=ALGO_LABELS[algo],
                 color=ALGO_COLORS[algo], linewidth=2, markersize=4)
-    ax.set_title(tipo)
+    
+    ax.set_title(tipo, fontsize=10, fontweight="bold")
     ax.set_xlabel("n")
     ax.set_ylabel("Tiempo (ms)")
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.grid(True, which="both", linestyle="--", alpha=0.4)
-    ax.legend(fontsize=8)
+    ax.legend(fontsize=8, loc="upper left")
 fig.suptitle("Tiempo de ordenamiento vs n (escala log-log)", fontsize=13, fontweight="bold")
 fig.tight_layout()
 save(fig, "tiempo_vs_n_subplots_tipo.png")
 
-# ─── Gráfico 4: Memoria vs N ──────────────────────────────────────────────────
-print("Generando gráficos de memoria vs n...")
-for tipo in tipos:
+# ─── Gráfico 2: Memoria vs N — todos los tipos en subplots ────────────────────
+print("Generando gráfico combinado memoria vs n (subplots por tipo)...")
+fig, axes = plt.subplots(1, len(tipos), figsize=(6 * len(tipos), 5), sharey=False)
+for ax, tipo in zip(axes, tipos):
     sub = grouped[grouped["tipo"] == tipo]
     sub = (sub.groupby(["algorithm", "n"])
               .agg(memory_kb=("memory_kb", "mean"))
               .reset_index())
-    plot_memory_vs_n(
-        sub,
-        title=f"Memoria adicional vs n — tipo: {tipo}",
-        filename=f"memoria_vs_n_{tipo}.png"
-    )
+    for algo in algorithms:
+        data = sub[sub["algorithm"] == algo].sort_values("n")
+        if data.empty:
+            continue
+        ax.plot(data["n"], data["memory_kb"],
+                marker="s", label=ALGO_LABELS[algo],
+                color=ALGO_COLORS[algo], linewidth=2, markersize=4)
+    ax.set_title(tipo, fontsize=10, fontweight="bold")
+    ax.set_xlabel("n")
+    ax.set_ylabel("Memoria adicional (KB)")
+    ax.set_xscale("log")
+    ax.grid(True, which="both", linestyle="--", alpha=0.4)
+    ax.legend(fontsize=8)
+fig.suptitle("Memoria adicional vs n", fontsize=13, fontweight="bold")
+fig.tight_layout()
+save(fig, "memoria_vs_n_subplots_tipo.png")
 
-# ─── Gráfico 5: Heatmap de tiempo por tipo × algoritmo (n=10^5) ──────────────
+# ─── Gráfico 3: Heatmap de tiempo por tipo × algoritmo (n=10^5) ──────────────
 print("Generando heatmap...")
 sub = grouped[grouped["n"] == 100000].copy()
 if not sub.empty:

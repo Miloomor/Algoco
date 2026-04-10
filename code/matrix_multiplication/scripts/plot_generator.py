@@ -19,13 +19,18 @@ MEAS_FILE = "data/measurements/results.csv"
 PLOTS_DIR = "data/plots"
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
+# Limpiar gráficos antiguos para forzar recarga en LaTeX
+for old_plot in os.listdir(PLOTS_DIR):
+    if old_plot.endswith('.png'):
+        os.remove(os.path.join(PLOTS_DIR, old_plot))
+
 ALGO_COLORS = {
     "naive":    "#FF6F00",
     "strassen": "#6A1B9A",
 }
 ALGO_LABELS = {
-    "naive":    "Naive O(n³)",
-    "strassen": "Strassen O(n^2.807)",
+    "naive":    "Naive ",
+    "strassen": "Strassen",
 }
 
 # ─── Carga de datos ───────────────────────────────────────────────────────────
@@ -107,31 +112,7 @@ def plot_memory_vs_n(subset_df, title, filename):
     save(fig, filename)
 
 
-# ─── Gráfico 1: Tiempo vs N por tipo (promedio sobre dominios) ───────────────
-print("Generando gráficos de tiempo vs n por tipo...")
-for tipo in tipos:
-    sub = grouped[grouped["tipo"] == tipo]
-    sub = (sub.groupby(["algorithm", "n"])
-              .agg(time_ms=("time_ms", "mean"))
-              .reset_index())
-    plot_time_vs_n(
-        sub,
-        title=f"Tiempo vs n — tipo: {tipo} (promedio D0+D10)",
-        filename=f"tiempo_vs_n_{tipo}.png"
-    )
 
-# ─── Gráfico 2: Tiempo vs N por dominio (promedio sobre tipos) ───────────────
-print("Generando gráficos de tiempo vs n por dominio...")
-for dominio in dominios:
-    sub = grouped[grouped["dominio"] == dominio]
-    sub = (sub.groupby(["algorithm", "n"])
-              .agg(time_ms=("time_ms", "mean"))
-              .reset_index())
-    plot_time_vs_n(
-        sub,
-        title=f"Tiempo vs n — dominio: {dominio} (promedio tipos)",
-        filename=f"tiempo_vs_n_{dominio}.png"
-    )
 
 # ─── Gráfico 3: Subplots tipo × dominio ──────────────────────────────────────
 print("Generando gráfico combinado (subplots tipo × dominio)...")
@@ -153,6 +134,7 @@ for row_i, dominio in enumerate(dominios):
             ax.plot(data["n"], data["time_ms"],
                     marker="o", label=ALGO_LABELS[algo],
                     color=ALGO_COLORS[algo], linewidth=2, markersize=4)
+        
         ax.set_title(f"{tipo} / {dominio}", fontsize=9)
         ax.set_xscale("log", base=2)
         ax.set_yscale("log")
@@ -165,75 +147,37 @@ fig.suptitle("Tiempo vs n — Multiplicación de matrices (log-log)", fontsize=1
 fig.tight_layout()
 save(fig, "tiempo_vs_n_subplots.png")
 
-# ─── Gráfico 4: Comparación barras para n=256 y n=1024 ───────────────────────
-print("Generando gráficos de comparación por n fijo...")
-for n_val in [256, 1024]:
-    sub = grouped[grouped["n"] == n_val].copy()
-    if sub.empty:
-        continue
-    sub["config"] = sub["tipo"] + "\n" + sub["dominio"]
-    configs = sub["config"].unique()
-    x = np.arange(len(configs))
-    width = 0.35
 
-    fig, ax = plt.subplots(figsize=(max(8, len(configs) * 1.3), 5))
-    for i, algo in enumerate(algorithms):
-        heights = []
-        for cfg in configs:
-            row = sub[(sub["algorithm"] == algo) & (sub["config"] == cfg)]
-            heights.append(row["time_ms"].values[0] if not row.empty else 0)
-        ax.bar(x + i * width, heights, width, label=ALGO_LABELS[algo],
-               color=ALGO_COLORS[algo], alpha=0.85)
+# ─── Gráfico 2: Subplots por tipo (densa, diagonal, dispersa) - MEMORIA ──────
+print("Generando gráfico de memoria vs n por tipo...")
+fig, axes = plt.subplots(1, len(tipos),
+                          figsize=(6 * len(tipos), 5),
+                          sharey=False)
+if len(tipos) == 1:
+    axes = [axes]
 
-    ax.set_xticks(x + width / 2)
-    ax.set_xticklabels(configs, fontsize=8)
-    ax.set_ylabel("Tiempo promedio (ms)")
-    ax.set_title(f"Comparación de algoritmos — n = {n_val}")
-    ax.legend()
-    ax.grid(axis="y", linestyle="--", alpha=0.4)
-    fig.tight_layout()
-    save(fig, f"comparacion_algoritmos_n{n_val}.png")
-
-# ─── Gráfico 5: Speedup Naive/Strassen ───────────────────────────────────────
-print("Generando gráfico de speedup...")
-sub_naive    = grouped[grouped["algorithm"] == "naive"]
-sub_strassen = grouped[grouped["algorithm"] == "strassen"]
-merged = pd.merge(sub_naive, sub_strassen,
-                  on=["n", "tipo", "dominio"], suffixes=("_naive", "_strassen"))
-merged["speedup"] = merged["time_ms_naive"] / merged["time_ms_strassen"]
-
-fig, ax = plt.subplots(figsize=(8, 5))
-for tipo in tipos:
-    sub = (merged[merged["tipo"] == tipo]
-           .groupby("n")["speedup"].mean()
-           .reset_index()
-           .sort_values("n"))
-    ax.plot(sub["n"], sub["speedup"], marker="o", label=tipo, linewidth=2)
-
-ax.axhline(1, color="black", linestyle="--", alpha=0.5, label="speedup = 1")
-ax.set_ylim(merged["speedup"].min() * 0.9, merged["speedup"].max() * 1.1)
-ax.set_xlabel("n (dimensión de la matriz)")
-ax.set_ylabel("Speedup (Naive / Strassen)")
-ax.set_title("Speedup de Strassen respecto a Naive (>1 = Strassen más rápido)")
-ax.set_xscale("log", base=2)
-ax.xaxis.set_major_formatter(ticker.FuncFormatter(
-    lambda v, _: f"$2^{{{int(np.log2(v))}}}$" if v > 0 else ""))
-ax.legend()
-ax.grid(True, which="both", linestyle="--", alpha=0.4)
-fig.tight_layout()
-save(fig, "speedup_strassen_vs_naive.png")
-
-# ─── Gráfico 6: Memoria vs N ──────────────────────────────────────────────────
-print("Generando gráficos de memoria vs n...")
-for tipo in tipos:
+for col_j, tipo in enumerate(tipos):
+    ax = axes[col_j]
     sub = grouped[grouped["tipo"] == tipo]
-    sub = (sub.groupby(["algorithm", "n"])
-              .agg(memory_kb=("memory_kb", "mean"))
-              .reset_index())
-    plot_memory_vs_n(
-        sub,
-        title=f"Memoria adicional vs n — tipo: {tipo}",
-        filename=f"memoria_vs_n_{tipo}.png"
-    )
+    sub = sub.sort_values("n")
+    for algo in algorithms:
+        data = sub[sub["algorithm"] == algo]
+        if data.empty:
+            continue
+        ax.plot(data["n"], data["memory_kb"],
+                marker="s", label=ALGO_LABELS[algo],
+                color=ALGO_COLORS[algo], linewidth=2, markersize=6)
+    
+    ax.set_title(f"{tipo} (promedio D0+D10)", fontsize=10, fontweight="bold")
+    ax.set_xlabel("n (dimensión de la matriz n×n)")
+    ax.set_ylabel("Memoria adicional promedio (KB)")
+    ax.set_xscale("log", base=2)
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(
+        lambda v, _: f"$2^{{{int(np.log2(v))}}}$" if v > 0 else ""))
+    ax.legend(fontsize=8)
+    ax.grid(True, which="both", linestyle="--", alpha=0.4)
 
+fig.suptitle("Memoria adicional vs n — Multiplicación de matrices", fontsize=13, fontweight="bold")
+fig.tight_layout()
+save(fig, "memoria_vs_n_por_tipo.png")
 print("\nTodos los gráficos generados en", PLOTS_DIR)
