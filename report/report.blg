@@ -1,9 +1,14 @@
-[0] Config.pm:328> INFO - This is Biber 2.21
-[0] Config.pm:331> INFO - Logfile is 'report.blg'
-[70] biber:342> INFO - === Sun Mar 15, 2026, 23:13:01
-[88] Biber.pm:421> INFO - Reading 'report.bcf'
-[150] Biber.pm:1002> INFO - Found 0 citekeys in bib section 0
-[160] bbl.pm:676> INFO - Writing 'report.bbl' with encoding 'UTF-8'
-[160] bbl.pm:779> INFO - Output to report.bbl
-[160] Biber.pm:132> WARN - The file 'report.bcf' does not contain any citations!
-[160] Biber.pm:134> INFO - WARNINGS: 1
+[0] Config.pm:307> INFO - This is Biber 2.19
+[0] Config.pm:310> INFO - Logfile is 'report.blg'
+[54] biber:340> INFO - === Thu Apr  9, 2026, 20:43:18
+[64] Biber.pm:419> INFO - Reading 'report.bcf'
+[105] Biber.pm:979> INFO - Found 4 citekeys in bib section 0
+[114] Biber.pm:4419> INFO - Processing section 0
+[121] Biber.pm:4610> INFO - Looking for bibtex file 'references.bib' for section 0
+[122] bibtex.pm:1713> INFO - LaTeX decoding ...
+[127] bibtex.pm:1519> INFO - Found BibTeX data source 'references.bib'
+[163] UCollate.pm:68> INFO - Overriding locale 'es-ES' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[163] UCollate.pm:68> INFO - Overriding locale 'es-ES' defaults 'variable = shifted' with 'variable = non-ignorable'
+[163] Biber.pm:4239> INFO - Sorting list 'nty/global//global/global' of type 'entry' with template 'nty' and locale 'es-ES'
+[166] bbl.pm:660> INFO - Writing 'report.bbl' with encoding 'UTF-8'
+[167] bbl.pm:763> INFO - Output to report.bbl
